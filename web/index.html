@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>mvm playground</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>mvm playground</h1>
+    <span id="status" class="status loading">loading wasm…</span>
+  </header>
+
+  <main>
+    <section class="editor">
+      <div class="toolbar">
+        <label>Sample
+          <select id="sample" disabled>
+            <option value="">(loading)</option>
+          </select>
+        </label>
+        <button id="run" disabled>Run ▶</button>
+      </div>
+      <textarea id="src" spellcheck="false" autocomplete="off" autocapitalize="off"
+        placeholder="// loading…"></textarea>
+    </section>
+    <section class="output">
+      <div class="toolbar"><h2>Output</h2><span id="timing"></span></div>
+      <pre id="out"></pre>
+    </section>
+  </main>
+
+  <footer>
+    Powered by <a href="https://github.com/mvm-sh/mvm">mvm</a>, compiled to WebAssembly.
+  </footer>
+
+  <script src="wasm_exec.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
