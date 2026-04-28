@@ -12,8 +12,6 @@ make serve                              # binds 0.0.0.0:8080 - open http://<host
 
 Open the URL, pick a sample (or paste your own Go program), click **Run**.
 
-`make smoke` runs the curated samples natively, useful for CI.
-
 ## Deploy
 
 Any static host works (GitHub Pages, Netlify, S3+CloudFront, plain nginx).
