@@ -40,7 +40,11 @@ function populateSamples() {
   sampleSel.innerHTML = '<option value="">- pick a sample -</option>' +
     names.map(n => `<option value="${n}">${n.replace(/\.go$/, "")}</option>`).join("");
   sampleSel.disabled = false;
-  const pick = names.includes("fib.go") ? "fib.go" : names[0];
+  const want = new URLSearchParams(location.search).get("sample");
+  const wanted = want && (names.includes(want) ? want
+                       : names.includes(want + ".go") ? want + ".go"
+                       : null);
+  const pick = wanted || (names.includes("fib.go") ? "fib.go" : names[0]);
   if (!pick) return;
   sampleSel.value = pick;
   src.value = String(globalThis.mvmGetSample(pick) ?? "");

@@ -1,4 +1,5 @@
 :root {
+  color-scheme: light dark;
   --bg: #fff;
   --surface: #fafafa;
   --border: #e0e0e0;
@@ -8,7 +9,25 @@
   --warn:  #aa6600;
   --accent: #0969da;
   --accent-hover: #0860c4;
+  --btn-bg: #0969da;
+  --btn-bg-hover: #0860c4;
   --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --error: #f85149;
+    --warn:  #d29922;
+    --accent: #58a6ff;
+    --accent-hover: #79b8ff;
+    --btn-bg: #1f6feb;
+    --btn-bg-hover: #388bfd;
+  }
 }
 
 * { box-sizing: border-box; }
@@ -27,7 +46,9 @@ header, footer {
   background: var(--bg);
 }
 header { display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); }
-header h1 { margin: 0; font-size: 16px; font-weight: 600; }
+header h1 { margin: 0; font-size: 16px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; }
+header h1 img { display: block; height: 22px; width: auto; }
+header h1 span { color: var(--muted); font-weight: 500; }
 footer {
   border-top: 1px solid var(--border);
   color: var(--muted);
@@ -69,9 +90,9 @@ select, button {
 }
 button {
   cursor: pointer; font-weight: 600;
-  background: var(--accent); color: #fff; border-color: var(--accent);
+  background: var(--btn-bg); color: #fff; border-color: var(--btn-bg);
 }
-button:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+button:hover:not(:disabled) { background: var(--btn-bg-hover); border-color: var(--btn-bg-hover); }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 textarea, #out {

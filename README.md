@@ -14,8 +14,7 @@ Open the URL, pick a sample (or paste your own Go program), click **Run**.
 
 ## Deploy
 
-Any static host works (GitHub Pages, Netlify, S3+CloudFront, plain nginx).
-Upload the contents of `web/`.
+Any static host works Upload the contents of `web/`.
 Ensure `.wasm` files are served with `Content-Type: application/wasm`.
 
 ## Limitations
@@ -25,3 +24,7 @@ Ensure `.wasm` files are served with `Content-Type: application/wasm`.
 - No persistent storage (program is lost on reload).
 - Plain `<textarea>`, no syntax highlighting.
 - Multi-file programs aren't supported.
+
+## License
+
+BSD-3-Clause. See [LICENSE](LICENCE).
