@@ -9,7 +9,7 @@
   <link rel="apple-touch-icon" href="mvm-logo-square-boxed-512.png">
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body data-mode="run">
   <header>
     <h1>
       <img src="mvm-logo.svg" alt="mvm" height="22">
@@ -21,19 +21,39 @@
   <main>
     <section class="editor">
       <div class="toolbar">
-        <label>Sample
-          <select id="sample" disabled>
-            <option value="">(loading)</option>
-          </select>
-        </label>
-        <button id="run" disabled>Run ▶</button>
+        <div class="left">
+          <label>Mode
+            <select id="mode" disabled>
+              <option value="run">Run</option>
+              <option value="repl">REPL</option>
+            </select>
+          </label>
+          <label class="run-only">Sample
+            <select id="sample" disabled>
+              <option value="">(loading)</option>
+            </select>
+          </label>
+          <span class="trace-opts">Trace
+            <label><input type="checkbox" id="trace-line"> line</label>
+            <label><input type="checkbox" id="trace-op"> bytecode</label>
+          </span>
+        </div>
+        <div class="right">
+          <button id="run" disabled>Run ▶</button>
+          <button id="repl-reset" class="repl-only" hidden disabled>Reset</button>
+        </div>
       </div>
-      <textarea id="src" spellcheck="false" autocomplete="off" autocapitalize="off"
+      <textarea id="src" class="run-only" spellcheck="false" autocomplete="off" autocapitalize="off"
         placeholder="// loading…"></textarea>
+      <div id="aux" class="aux" hidden></div>
     </section>
     <section class="output">
-      <div class="toolbar"><h2>Output</h2><span id="timing"></span></div>
+      <div class="toolbar"><h2 id="out-title">Output</h2><span id="timing"></span></div>
       <pre id="out"></pre>
+      <form id="repl-form" class="repl-only" hidden autocomplete="off">
+        <span id="repl-prompt" class="prompt">&gt;</span>
+        <input id="repl-input" spellcheck="false" autocapitalize="off" placeholder="Go statement…" disabled>
+      </form>
     </section>
   </main>
 
