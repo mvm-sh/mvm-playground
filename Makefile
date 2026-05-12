@@ -2,9 +2,7 @@ GOROOT  := $(shell go env GOROOT)
 SAMPLES_SRC := ../mvm/_samples
 EXTRA_SAMPLES_SRC := playground/_extra_samples
 SAMPLES_DST := playground/_samples
-CURATED := fib.go heap.go maps.go slices.go sort1.go iter1.go context1.go \
-           cmp.go json_nested_marshaler.go rangefunc1.go generic.go intf1.go \
-           sieve.go
+CURATED := fib.go sieve.go generic.go iter1.go
 
 # Third-party modules bundled (as Go-module-proxy zips) so the playground
 # resolves their imports offline. Listed as path@query; the query is resolved

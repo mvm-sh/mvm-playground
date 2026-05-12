@@ -39,12 +39,17 @@
           </span>
         </div>
         <div class="right">
+          <span id="parse-stats" class="parse-stats muted run-only" hidden></span>
           <button id="run" disabled>Run ▶</button>
           <button id="repl-reset" class="repl-only" hidden disabled>Reset</button>
         </div>
       </div>
+      <div id="tabs" class="tabs run-only" hidden>
+        <button type="button" class="tab active" data-source="">Source</button>
+      </div>
       <textarea id="src" class="run-only" spellcheck="false" autocomplete="off" autocapitalize="off"
         placeholder="// loading…"></textarea>
+      <pre id="viewer" class="viewer" hidden></pre>
       <div id="aux" class="aux" hidden></div>
     </section>
     <section class="output">
@@ -58,7 +63,8 @@
   </main>
 
   <footer>
-    Powered by <a href="https://github.com/mvm-sh/mvm">mvm</a>, compiled to WebAssembly.
+    <span>Powered by <a href="https://github.com/mvm-sh/mvm">mvm</a> <span id="mvm-version" class="version" title="mvm version / Go version / target"></span></span>
+    <span class="local-note">Everything runs in your browser, no server.</span>
   </footer>
 
   <script src="wasm_exec.js"></script>

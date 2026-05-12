@@ -3,9 +3,11 @@
 // The wasm command exposes the mvm interpreter to the browser. It registers
 // these JS globals and then parks:
 //
-//	mvmRun(source [, {traceLine, traceOp}]) -> {stdout, stderr, error}
+//	mvmRun(source [, {traceLine, traceOp}]) -> {stdout, stderr, error, sources: [{name, lines, bytes}, ...]}
 //	mvmListSamples()                        -> [name, ...]
 //	mvmGetSample(name)                      -> source string
+//	mvmLastSource(name)                     -> content of the named source from the last run
+//	mvmVersion()                            -> "<mvm-ver> <go-ver> <os>/<arch>"
 //	mvmReplReset()                          -> (clears the REPL session)
 //	mvmReplEval(line [, {traceLine, traceOp}]) -> {stdout, stderr, result, more, error}
 package main
@@ -13,6 +15,8 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"runtime"
+	"runtime/debug"
 	"syscall/js"
 
 	"github.com/mvm-sh/mvm-playground/playground"
@@ -30,17 +34,25 @@ func optBool(args []js.Value, idx int, key string) bool {
 	return v.Type() == js.TypeBoolean && v.Bool()
 }
 
+// lastSources holds the content of every source loaded by the most recent
+// runMVM call, keyed by source name. It backs mvmLastSource so the browser
+// can show imported package files in a tab without keeping the whole
+// interpreter alive between runs.
+var lastSources map[string]string
+
 func runMVM(_ js.Value, args []js.Value) (ret any) {
 	var stdout, stderr bytes.Buffer
 	var errMsg string
+	var sources []any
 	defer func() {
 		if r := recover(); r != nil {
 			errMsg = fmt.Sprintf("interpreter panic: %v", r)
 		}
 		ret = js.ValueOf(map[string]any{
-			"stdout": stdout.String(),
-			"stderr": stderr.String(),
-			"error":  errMsg,
+			"stdout":  stdout.String(),
+			"stderr":  stderr.String(),
+			"error":   errMsg,
+			"sources": sources,
 		})
 	}()
 
@@ -58,7 +70,47 @@ func runMVM(_ js.Value, args []js.Value) (ret any) {
 	if _, err := i.Eval("m:playground", args[0].String()); err != nil {
 		errMsg = err.Error()
 	}
+
+	lastSources = make(map[string]string, len(i.Sources)+1)
+	sources = make([]any, 0, len(i.Sources)+1)
+	for k := range i.Sources {
+		s := &i.Sources[k]
+		lastSources[s.Name] = s.Content()
+		sources = append(sources, map[string]any{
+			"name":  s.Name,
+			"lines": s.Lines(),
+			"bytes": s.Len,
+		})
+	}
+
+	// Add a synthetic listing entry; the playground UI surfaces it as a tab
+	// like any other source, but it's a disassembly of the compiled bytecode
+	// interleaved with the Go lines that produced it.
+	var asm bytes.Buffer
+	playground.FormatListing(&asm, i)
+	if asm.Len() > 0 {
+		const asmName = "<bytecode>"
+		lastSources[asmName] = asm.String()
+		lines := 0
+		for _, b := range asm.Bytes() {
+			if b == '\n' {
+				lines++
+			}
+		}
+		sources = append(sources, map[string]any{
+			"name":  asmName,
+			"lines": lines,
+			"bytes": asm.Len(),
+		})
+	}
 	return
+}
+
+func lastSource(_ js.Value, args []js.Value) any {
+	if len(args) < 1 || lastSources == nil {
+		return js.ValueOf("")
+	}
+	return js.ValueOf(lastSources[args[0].String()])
 }
 
 func listSamples(js.Value, []js.Value) any {
@@ -113,11 +165,36 @@ func replEval(_ js.Value, args []js.Value) (ret any) {
 	return
 }
 
+// mvmVersionString returns "<mvm-version> <go-version> js/wasm", mirroring
+// the format of `mvm version`. The mvm version is taken from the dependency
+// entry in this binary's build info; a local `replace` directive surfaces as
+// "(devel)".
+func mvmVersionString() string {
+	mvmVer, goVer := "(unknown)", runtime.Version()
+	if bi, ok := debug.ReadBuildInfo(); ok {
+		goVer = bi.GoVersion
+		for _, d := range bi.Deps {
+			if d.Path == "github.com/mvm-sh/mvm" {
+				mvmVer = d.Version
+				if d.Replace != nil && d.Replace.Version != "" {
+					mvmVer = d.Replace.Version
+				}
+				break
+			}
+		}
+	}
+	return fmt.Sprintf("%.12s %s %s/%s", mvmVer, goVer, runtime.GOOS, runtime.GOARCH)
+}
+
+func mvmVersion(js.Value, []js.Value) any { return js.ValueOf(mvmVersionString()) }
+
 func main() {
 	js.Global().Set("mvmRun", js.FuncOf(runMVM))
 	js.Global().Set("mvmListSamples", js.FuncOf(listSamples))
 	js.Global().Set("mvmGetSample", js.FuncOf(getSample))
+	js.Global().Set("mvmLastSource", js.FuncOf(lastSource))
 	js.Global().Set("mvmReplReset", js.FuncOf(replReset))
 	js.Global().Set("mvmReplEval", js.FuncOf(replEval))
+	js.Global().Set("mvmVersion", js.FuncOf(mvmVersion))
 	select {}
 }
