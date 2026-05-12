@@ -35,6 +35,11 @@ func (r *Repl) SetTrace(line, op bool) {
 	r.i.SetTraceOps(op)
 }
 
+// Interp exposes the underlying interpreter so callers can introspect
+// loaded sources, compiled bytecode, or debug info. The interpreter is
+// shared with future Eval calls; callers should treat it as read-only.
+func (r *Repl) Interp() *interp.Interp { return r.i }
+
 // Eval evaluates one input line. It returns whatever the line wrote to stdout
 // and stderr, the printed form of the line's value (empty if none), and more,
 // which reports that the input is an unterminated block and the next call
@@ -66,5 +71,5 @@ func (r *Repl) evalGuarded(srcText string) (res reflect.Value, err error) {
 			res, err = reflect.Value{}, fmt.Errorf("panic: %v", rec)
 		}
 	}()
-	return r.i.Eval("m:<repl>", srcText)
+	return r.i.Eval("repl", srcText)
 }

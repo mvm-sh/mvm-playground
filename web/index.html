@@ -15,6 +15,11 @@
       <img src="mvm-logo.svg" alt="mvm" height="22">
       <span>playground</span>
     </h1>
+    <span class="tagline">a fast virtual machine for Go and beyond</span>
+    <nav class="links">
+      <a href="https://mvm.sh">mvm.sh</a>
+      <a href="https://github.com/mvm-sh/mvm">GitHub</a>
+    </nav>
     <span id="status" class="status loading">loading wasm…</span>
   </header>
 
@@ -44,8 +49,8 @@
           <button id="repl-reset" class="repl-only" hidden disabled>Reset</button>
         </div>
       </div>
-      <div id="tabs" class="tabs run-only" hidden>
-        <button type="button" class="tab active" data-source="">Source</button>
+      <div id="tabs" class="tabs" hidden>
+        <button type="button" class="tab active run-only" data-source="">Source</button>
       </div>
       <textarea id="src" class="run-only" spellcheck="false" autocomplete="off" autocapitalize="off"
         placeholder="// loading…"></textarea>

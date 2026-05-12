@@ -3,7 +3,7 @@
 // The wasm command exposes the mvm interpreter to the browser. It registers
 // these JS globals and then parks:
 //
-//	mvmRun(source [, {traceLine, traceOp}]) -> {stdout, stderr, error, sources: [{name, lines, bytes}, ...]}
+//	mvmRun(source [, {traceLine, traceOp, name}]) -> {stdout, stderr, error, name, sources: [{name, lines, bytes}, ...]}
 //	mvmListSamples()                        -> [name, ...]
 //	mvmGetSample(name)                      -> source string
 //	mvmLastSource(name)                     -> content of the named source from the last run
@@ -34,6 +34,24 @@ func optBool(args []js.Value, idx int, key string) bool {
 	return v.Type() == js.TypeBoolean && v.Bool()
 }
 
+func optString(args []js.Value, idx int, key, def string) string {
+	if len(args) <= idx {
+		return def
+	}
+	o := args[idx]
+	if o.Type() != js.TypeObject {
+		return def
+	}
+	v := o.Get(key)
+	if v.Type() != js.TypeString {
+		return def
+	}
+	if s := v.String(); s != "" {
+		return s
+	}
+	return def
+}
+
 // lastSources holds the content of every source loaded by the most recent
 // runMVM call, keyed by source name. It backs mvmLastSource so the browser
 // can show imported package files in a tab without keeping the whole
@@ -44,6 +62,7 @@ func runMVM(_ js.Value, args []js.Value) (ret any) {
 	var stdout, stderr bytes.Buffer
 	var errMsg string
 	var sources []any
+	name := optString(args, 1, "name", "main.go")
 	defer func() {
 		if r := recover(); r != nil {
 			errMsg = fmt.Sprintf("interpreter panic: %v", r)
@@ -52,6 +71,7 @@ func runMVM(_ js.Value, args []js.Value) (ret any) {
 			"stdout":  stdout.String(),
 			"stderr":  stderr.String(),
 			"error":   errMsg,
+			"name":    name,
 			"sources": sources,
 		})
 	}()
@@ -67,7 +87,7 @@ func runMVM(_ js.Value, args []js.Value) (ret any) {
 	if optBool(args, 1, "traceOp") {
 		i.SetTraceOps(true)
 	}
-	if _, err := i.Eval("m:playground", args[0].String()); err != nil {
+	if _, err := i.Eval(name, args[0].String()); err != nil {
 		errMsg = err.Error()
 	}
 
@@ -140,16 +160,18 @@ func replEval(_ js.Value, args []js.Value) (ret any) {
 	var stdout, stderr, resStr string
 	var more bool
 	var errMsg string
+	var sources []any
 	defer func() {
 		if r := recover(); r != nil {
 			errMsg = fmt.Sprintf("interpreter panic: %v", r)
 		}
 		ret = js.ValueOf(map[string]any{
-			"stdout": stdout,
-			"stderr": stderr,
-			"result": resStr,
-			"more":   more,
-			"error":  errMsg,
+			"stdout":  stdout,
+			"stderr":  stderr,
+			"result":  resStr,
+			"more":    more,
+			"error":   errMsg,
+			"sources": sources,
 		})
 	}()
 
@@ -162,6 +184,36 @@ func replEval(_ js.Value, args []js.Value) (ret any) {
 	}
 	repl.SetTrace(optBool(args, 1, "traceLine"), optBool(args, 1, "traceOp"))
 	stdout, stderr, resStr, more = repl.Eval(args[0].String())
+
+	i := repl.Interp()
+	lastSources = make(map[string]string, len(i.Sources)+1)
+	sources = make([]any, 0, len(i.Sources)+1)
+	for k := range i.Sources {
+		s := &i.Sources[k]
+		lastSources[s.Name] = s.Content()
+		sources = append(sources, map[string]any{
+			"name":  s.Name,
+			"lines": s.Lines(),
+			"bytes": s.Len,
+		})
+	}
+	var asm bytes.Buffer
+	playground.FormatListing(&asm, i)
+	if asm.Len() > 0 {
+		const asmName = "<bytecode>"
+		lastSources[asmName] = asm.String()
+		lines := 0
+		for _, b := range asm.Bytes() {
+			if b == '\n' {
+				lines++
+			}
+		}
+		sources = append(sources, map[string]any{
+			"name":  asmName,
+			"lines": lines,
+			"bytes": asm.Len(),
+		})
+	}
 	return
 }
 

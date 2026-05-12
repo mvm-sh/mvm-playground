@@ -50,6 +50,10 @@ header { display: flex; align-items: center; gap: 12px; border-bottom: 1px solid
 header h1 { margin: 0; font-size: 16px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; }
 header h1 img { display: block; height: 22px; width: auto; }
 header h1 span { color: var(--muted); font-weight: 500; }
+header .tagline { color: var(--muted); font-size: 13px; }
+header .links { display: inline-flex; gap: 12px; margin-left: auto; font-size: 13px; }
+header .links a { color: var(--muted); text-decoration: none; }
+header .links a:hover { color: var(--accent); text-decoration: underline; }
 footer {
   border-top: 1px solid var(--border);
   color: var(--muted);
@@ -131,6 +135,15 @@ textarea { width: 100%; outline: 0; resize: none; tab-size: 4; background: var(-
 .aux h3 { margin: 0 0 6px; font-size: 13px; font-weight: 600; color: var(--text); }
 .aux p  { margin: 0 0 8px; font-size: 13px; line-height: 1.5; }
 .aux code { font-family: var(--mono); background: var(--surface); padding: 1px 4px; border-radius: 4px; }
+.aux pre.snippet { margin: 0; padding: 8px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; overflow-x: auto; }
+.aux pre.snippet code { background: transparent; padding: 0; font-size: 12px; line-height: 1.5; color: var(--text); }
+
+/* In REPL mode the help text only needs to occupy its natural height, leaving
+   the rest of the column for the source-tab viewer below it. The DOM order
+   places aux after tabs / viewer, so flex order is used to lift it above. */
+body[data-mode="repl"] .aux  { flex: 0 0 auto; order: 1; border-bottom: 1px solid var(--border); }
+body[data-mode="repl"] #tabs { order: 2; }
+body[data-mode="repl"] #viewer { order: 3; }
 
 #repl-form {
   display: flex; align-items: center; gap: 6px;

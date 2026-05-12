@@ -20,11 +20,12 @@ const replForm = $("repl-form");
 const replInput = $("repl-input");
 const replPrompt = $("repl-prompt");
 
-// USER_SOURCE_KEY is the data-source value used for the editable user-code tab.
-// The wasm side names that source "m:playground" (see runMVM in wasm/main.go);
-// we strip that name out of the imported-sources list so it doesn't show up
-// twice.
-const USER_SOURCE_NAME = "m:playground";
+// userSourceName tracks the source-name the wasm assigned to the user's code
+// for the most recent run, so renderSources can strip it from the imports list
+// (we already show it in the editable "Source" tab). It's the name we passed
+// into mvmRun via the `name` option — the sample filename, or "main.go" for an
+// edited / pasted snippet.
+let userSourceName = "main.go";
 
 let wasmReady = false;
 let mode = "run";
@@ -45,10 +46,9 @@ const traceOpts = () => ({ traceLine: traceLine.checked, traceOp: traceOp.checke
 const AUX_TEXT = {
   repl:
     "<h3>Interactive REPL</h3>" +
-    "<p>Type a Go statement or expression and press Enter. Definitions persist across lines; " +
-    "an unterminated block continues at the <code>&gt;&gt;</code> prompt.</p>" +
-    "<p>Expressions print their value after <code>:</code>. <strong>Reset</strong> starts a fresh session. " +
-    "The <strong>Trace</strong> checkboxes trace each evaluated line.</p>",
+    "<p>Type a Go statement or expression and press Enter.</p>" +
+    "<p>Try:</p>" +
+    "<pre class=\"snippet\"><code>import \"github.com/google/uuid\"\na := uuid.New()\nfmt.Println(a)</code></pre>",
 };
 
 function setMode(m) {
@@ -61,6 +61,9 @@ function setMode(m) {
   aux.innerHTML = AUX_TEXT[m] || "";
   // viewer is opt-in via selectTab; keep it hidden outside the run-mode tab flow.
   if (m !== "run") viewer.hidden = true;
+  // Tabs and stats are mode-scoped: a REPL session's imports shouldn't linger
+  // into Run, and vice versa. Each mode rebuilds them on its next eval.
+  renderSources(null);
 
   runBtn.hidden = m === "repl";
   outTitle.textContent = m === "repl" ? "Session" : "Output";
@@ -103,7 +106,7 @@ function renderSources(sources, ms) {
     return;
   }
 
-  const imported = sources.filter(s => s.name !== USER_SOURCE_NAME);
+  const imported = sources.filter(s => s.name !== userSourceName);
   // Surface the synthetic listing first; the rest are imported package files,
   // alphabetized so they're easy to scan.
   imported.sort((a, b) => {
@@ -126,7 +129,18 @@ function renderSources(sources, ms) {
   parseStats.textContent = `${sources.length} files · ${totalLines.toLocaleString()} lines${ms != null ? ` · ${ms} ms` : ""}`;
   parseStats.hidden = false;
   tabsEl.hidden = false;
-  selectTab(""); // default back to the editable Source tab after each run
+  // Run mode: snap back to the editable source so the user sees their code.
+  // REPL: no editable source; keep current selection if it still exists, else
+  // pick the first import tab so the panel below the help text isn't blank.
+  if (mode === "run") {
+    selectTab("");
+  } else {
+    const active = tabsEl.querySelector(".tab.active");
+    const stillValid = active && !active.hidden && tabsEl.querySelector(`.tab[data-source="${CSS.escape(active.dataset.source)}"]`);
+    if (!stillValid && imported.length > 0) {
+      selectTab(imported[0].name);
+    }
+  }
 }
 
 function selectTab(name) {
@@ -134,8 +148,10 @@ function selectTab(name) {
     t.classList.toggle("active", t.dataset.source === name);
   }
   if (name === "") {
+    // Only meaningful in run mode (the "Source" tab); REPL has no editable
+    // textarea, so leave the viewer hidden too.
     viewer.hidden = true;
-    src.hidden = false;
+    if (mode === "run") src.hidden = false;
     return;
   }
   let content = "";
@@ -206,10 +222,12 @@ async function run() {
   runBtn.disabled = true;
   await new Promise(requestAnimationFrame); // let the status pill paint
   const t0 = performance.now();
+  const opts = { ...traceOpts(), name: sampleSel.value || "main.go" };
   let result;
-  try { result = globalThis.mvmRun(src.value, traceOpts()); }
+  try { result = globalThis.mvmRun(src.value, opts); }
   catch (e) { result = { error: String(e) }; }
   const ms = Math.round(performance.now() - t0);
+  userSourceName = result.name || opts.name;
   render(result, ms);
   renderSources(result.sources, ms);
   setStatus("ready", "ready");
@@ -246,6 +264,9 @@ function replSubmit() {
   if (r.result !== "") appendOut(`<span class="result">: ${escape(r.result)}</span>\n`);
   replMore = !!r.more;
   replPrompt.textContent = replMore ? ">>" : ">";
+  // REPL sources accumulate across lines — re-render the tab strip every eval.
+  userSourceName = "repl";
+  renderSources(r.sources, null);
 }
 
 modeSel.addEventListener("change", () => setMode(modeSel.value));
